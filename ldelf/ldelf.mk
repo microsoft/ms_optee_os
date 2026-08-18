@@ -23,6 +23,9 @@ endif
 ifeq ($(CFG_RV32_core),y)
 CFG_RV32_$(sm) := y
 endif
+ifeq ($(CFG_X86_64_core),y)
+CFG_X86_64_$(sm) := y
+endif
 arch-bits-$(sm) := $(arch-bits-core)
 
 cppflags$(sm)	+= -include $(conf-file)

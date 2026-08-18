@@ -15,6 +15,10 @@ OUTPUT_ARCH(aarch64)
 #ifdef RV64
 OUTPUT_ARCH(riscv)
 #endif
+#ifdef X86_64
+OUTPUT_FORMAT("elf64-x86-64")
+OUTPUT_ARCH("i386:x86-64")
+#endif
 
 ENTRY(_ldelf_start)
 SECTIONS {

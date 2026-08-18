@@ -483,7 +483,7 @@ static void e32_relocate(struct ta_elf *elf, unsigned int rel_sidx)
 	}
 }
 
-#if defined(ARM64) || defined(RV64)
+#if defined(ARM64) || defined(RV64) || defined(X86_64)
 static void e64_get_sym_name(const Elf64_Sym *sym_tab, size_t num_syms,
 			     const char *str_tab, size_t str_tab_size,
 			     Elf64_Rela *rela, const char **name,
@@ -728,19 +728,51 @@ static void e64_relocate(struct ta_elf *elf, unsigned int rel_sidx)
 					     str_tab_size, rela, where);
 			break;
 #endif /*RV64*/
+#ifdef X86_64
+		case R_X86_64_NONE:
+			/*
+			 * One would expect linker prevents such useless entry
+			 * in the relocation table. We still handle this type
+			 * here in case such entries exist.
+			 */
+			break;
+		case R_X86_64_64:
+			sym_idx = ELF64_R_SYM(rela->r_info);
+			if (sym_idx >= num_syms)
+				err(TEE_ERROR_BAD_FORMAT,
+				    "Symbol index out of range");
+			sym_idx = confine_array_index(sym_idx, num_syms);
+			if (sym_tab[sym_idx].st_shndx == SHN_UNDEF) {
+				/* Symbol is external */
+				e64_process_dyn_rela(sym_tab, num_syms, str_tab,
+						     str_tab_size, rela, where);
+			} else {
+				*where = rela->r_addend + elf->load_addr +
+					 sym_tab[sym_idx].st_value;
+			}
+			break;
+		case R_X86_64_RELATIVE:
+			*where = rela->r_addend + elf->load_addr;
+			break;
+		case R_X86_64_GLOB_DAT:
+		case R_X86_64_JMP_SLOT:
+			e64_process_dyn_rela(sym_tab, num_syms, str_tab,
+					     str_tab_size, rela, where);
+			break;
+#endif /*X86_64*/
 		default:
 			err(TEE_ERROR_BAD_FORMAT, "Unknown relocation type %zd",
 			     ELF64_R_TYPE(rela->r_info));
 		}
 	}
 }
-#else /*ARM64 || RV64*/
+#else /*ARM64 || RV64 || X86_64*/
 static void __noreturn e64_relocate(struct ta_elf *elf __unused,
 				    unsigned int rel_sidx __unused)
 {
 	err(TEE_ERROR_NOT_SUPPORTED, "arm64 not supported");
 }
-#endif /*ARM64 || RV64*/
+#endif /*ARM64 || RV64 || X86_64*/
 
 void ta_elf_relocate(struct ta_elf *elf)
 {
