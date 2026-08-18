@@ -1,0 +1,3 @@
+PLATFORM_FLAVOR ?= kbl
+
+$(call force,CFG_LIBUTILS_WITH_COMPILER_RT,n)
